@@ -1,8 +1,28 @@
 import clientPromise from '@/lib/mongodb';
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
+import { createScorerKey } from '@/lib/liveScoreKeyCrypto';
+
+function authorizationError(req: Request) {
+    const expected = (process.env.BD71_LIVE_SCORE_ADMIN_SECRET ?? '').trim();
+    const supplied = (req.headers.get('x-bd71-admin-secret') ?? '').trim();
+    if (expected.length < 32) {
+        if (process.env.VERCEL_ENV) return `BD71_LIVE_SCORE_ADMIN_SECRET is not configured for this Vercel ${process.env.VERCEL_ENV} deployment. Add it to that environment and redeploy.`;
+        if (process.env.NODE_ENV === 'development') return 'BD71_LIVE_SCORE_ADMIN_SECRET is missing from the local Admin server. Add it to bd71admin/.env.local and restart npm run dev.';
+        return 'BD71_LIVE_SCORE_ADMIN_SECRET is not configured for this server.';
+    }
+    if (!supplied) return 'Admin access key is required.';
+    const expectedBytes = Buffer.from(expected);
+    const suppliedBytes = Buffer.from(supplied);
+    return expectedBytes.length === suppliedBytes.length && timingSafeEqual(expectedBytes, suppliedBytes)
+        ? null
+        : 'Admin access key does not match BD71_LIVE_SCORE_ADMIN_SECRET.';
+}
 
 
 export async function POST(req: Request) {
+    const authError = authorizationError(req);
+    if (authError) return NextResponse.json({ error: authError }, { status: authError.startsWith('BD71_LIVE_SCORE_ADMIN_SECRET') ? 503 : 401, headers: { 'Cache-Control': 'no-store' } });
     try {
         const body = await req.json();
         const client = await clientPromise;
@@ -15,6 +35,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        const start = new Date(startingDate);
+        const end = new Date(endDate);
+        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+            return NextResponse.json({ error: 'End date and time must be after the start.' }, { status: 400 });
+        }
+        if (!['Solo', 'Duo', 'Squad'].includes(tournamentType) || !Number.isInteger(Number(totalMatch)) || Number(totalMatch) < 1) {
+            return NextResponse.json({ error: 'Choose a valid tournament type and positive match count.' }, { status: 400 });
+        }
         // Generate 30 unique 16-character team codes (format: xxxx-xxxx-xxxx-xxxx, lowercase, alphanumeric)
         // const generateTeamCode = () => {
         //     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -31,6 +59,10 @@ export async function POST(req: Request) {
         //     teamCodes.add(generateTeamCode());
         // }
 
+        // Prepare both credentials before creating the tournament so a missing
+        // encryption secret cannot leave an unscorable tournament behind.
+        const scorerKeys = [1, 2].map((position) => ({ position, ...createScorerKey() }));
+        await db.collection('liveScoreKeys').createIndex({ tournamentId: 1, position: 1 }, { unique: true });
         const result = await db.collection('tournaments').insertOne({
             tournamentName,
             tournamentType,
@@ -46,14 +78,34 @@ export async function POST(req: Request) {
             // teamCodes: Array.from(teamCodes),
         });
 
+        const tournamentId = result.insertedId.toString();
+        try {
+            await db.collection('liveScoreKeys').insertMany(scorerKeys.map(({ position, keyHash, encryptedKey, lastFour }) => ({
+                tournamentId,
+                position,
+                keyHash,
+                encryptedKey,
+                lastFour,
+                active: true,
+                createdAt: new Date(),
+            })));
+        } catch (error) {
+            await db.collection('tournaments').deleteOne({ _id: result.insertedId });
+            throw error;
+        }
+
         return NextResponse.json({ 
-            insertedId: result.insertedId, 
-            message: 'Tournament created successfully' 
-        }, { status: 201 });
+            insertedId: tournamentId,
+            message: 'Tournament created successfully',
+            scorerKeys: scorerKeys.map(({ position, value }) => ({ position, key: value })),
+        }, { status: 201, headers: { 'Cache-Control': 'no-store' } });
 
     } catch (error) {
         console.error('Error Adding tournament:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        const message = error instanceof Error && error.message.includes('BD71_LIVE_SCORE_KEY_ENCRYPTION_SECRET')
+            ? error.message
+            : 'Could not create tournament and scorer keys.';
+        return NextResponse.json({ error: message }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
     }
 }
 

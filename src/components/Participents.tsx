@@ -35,8 +35,8 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
       setTeamList((prev) =>
         prev.map((t) => (t._id === teamId ? { ...t, isApproved: true } : t))
       );
-    } catch (err: any) {
-      toast.error(err.message || 'Error approving team', { id: toastId });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error approving team', { id: toastId });
     }
   };
 
@@ -58,8 +58,8 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
       setTeamList((prev) =>
         prev.map((t) => (t._id === teamId ? { ...t, isApproved: false } : t))
       );
-    } catch (err: any) {
-      toast.error(err.message || 'Error declining team', { id: toastId });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error declining team', { id: toastId });
     }
   };
 
@@ -79,8 +79,8 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
 
       // Remove team from UI state
       setTeamList((prev) => prev.filter((t) => t._id !== teamId));
-    } catch (err: any) {
-      toast.error(err.message || 'Error deleting team', { id: toastId });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error deleting team', { id: toastId });
     }
   };
 

@@ -60,9 +60,9 @@ const TournamentDetails = () => {
       }
 
       toast.success(data.message || 'Discord setup completed!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.dismiss();
-      toast.error(error.message || 'Something went wrong.');
+      toast.error(error instanceof Error ? error.message : 'Something went wrong.');
     }
   };
 

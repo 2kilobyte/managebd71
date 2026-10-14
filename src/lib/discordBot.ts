@@ -15,13 +15,31 @@ client.once('ready', () => {
   console.log(`✅ Bot logged in as ${client.user?.tag}`);
 });
 
-// Ensure bot is logged in once
-if (!client.isReady()) {
-  client.login(process.env.DISCORD_TOKEN);
+// Connect only when an admin requests a Discord action, never during a build.
+let loginPromise: Promise<void> | undefined;
+async function ensureReady() {
+  if (client.isReady()) return;
+  if (!loginPromise) {
+    loginPromise = new Promise<void>((resolve, reject) => {
+      const token = process.env.DISCORD_TOKEN;
+      if (!token) { reject(new Error('Discord token is not configured')); return; }
+      const onReady = () => { clearTimeout(timer); resolve(); };
+      const onError = (error: Error) => {
+        clearTimeout(timer);
+        client.removeListener('ready', onReady);
+        reject(error);
+      };
+      const timer = setTimeout(() => onError(new Error('Discord connection timed out')), 15000);
+      client.once('ready', onReady);
+      client.login(token).catch(onError);
+    }).catch((error) => { loginPromise = undefined; throw error; });
+  }
+  await loginPromise;
 }
 
 // Function to create voice channel
 export const createVoiceChannel = async (teamName: string, userLimit: number): Promise<string> => {
+    await ensureReady();
     const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
     const channel = await guild.channels.create({
@@ -40,6 +58,7 @@ export const assignRoleToUser = async (
   discordId: string,
   roleID: string = process.env.DISCORD_ROLE_ID!
 ): Promise<void> => {
+  await ensureReady();
   const guild = await client.guilds.fetch(process.env.GUILD_ID!);
   try {
     const member = await guild.members.fetch(discordId);
@@ -54,6 +73,7 @@ export const assignRoleToUser = async (
 
 // ✅ Function to create a new role for a team
 export const createRoleForTeam = async (teamName: string): Promise<string> => {
+  await ensureReady();
   const guild = await client.guilds.fetch(process.env.GUILD_ID!);
 
   try {
@@ -88,6 +108,7 @@ export const setChannelPermissions = async (
   connectRoleId: string,   // Can view and connect
   viewOnlyRoleId: string  = process.env.DISCORD_ROLE_ID!,
 ): Promise<void> => {
+  await ensureReady();
   const guild = await client.guilds.fetch(process.env.GUILD_ID!);
   const channel = await guild.channels.fetch(channelId);
 

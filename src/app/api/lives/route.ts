@@ -20,7 +20,7 @@ export async function PUT(req: Request) {
     }
 
     // Update videoId (and optionally isEnded)
-    const updateData: any = { videoId, isEnded: false  };
+    const updateData = { videoId, isEnded: false };
 
 
     await db.collection("lives").updateOne(

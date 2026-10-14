@@ -21,11 +21,14 @@ export async function POST(req: Request) {
             );
         }
 
+        if (!ObjectId.isValid(teamId) || !ObjectId.isValid(tournamentId)) {
+            return NextResponse.json({ error: 'Invalid team or tournament ID.' }, { status: 400 });
+        }
         const client = await clientPromise;
         const db = client.db("bd71");
 
         // Validate team exists
-        const team = await db.collection("teams").findOne({ _id: new ObjectId(teamId) });
+        const team = await db.collection("teams").findOne({ _id: new ObjectId(teamId), tournamentId });
         if (!team) {
             return NextResponse.json(
                 { error: "Team not found." },
@@ -33,23 +36,24 @@ export async function POST(req: Request) {
             );
         }
 
-        // Calculate teamNumber: if 2 teams registered, next teamNumber is 3
-        const teamCount = await db.collection('teams').countDocuments({
-            tournamentId,
-            isApproved: true
-        });
-        const teamGameId = teamCount + 3;
+        if (team.isApproved) return NextResponse.json({ message: 'Team is already approved.' });
+        const approved = await db.collection('teams').find({ tournamentId, isApproved: true }).toArray();
+        const highest = Math.max(2, ...approved.map((t) => Number(t.teamGameId) || 2));
+        const counters = db.collection<{ _id: string; value: number }>('teamSlotCounters');
+        await counters.updateOne({ _id: tournamentId }, { $max: { value: highest } }, { upsert: true });
+        const counter = await counters.findOneAndUpdate({ _id: tournamentId }, { $inc: { value: 1 } }, { returnDocument: 'after' });
+        const teamGameId = counter!.value;
 
         // Approve team
         const result = await db.collection("teams").updateOne(
-            { _id: new ObjectId(teamId) },
+            { _id: new ObjectId(teamId), tournamentId, isApproved: { $ne: true } },
             { $set: { isApproved: true, teamGameId } }
         );
 
         if (result.modifiedCount === 0) {
             return NextResponse.json(
-                { error: "Failed to approve team." },
-                { status: 500 }
+                { message: "Team is already approved." },
+                { status: 200 }
             );
         }
 

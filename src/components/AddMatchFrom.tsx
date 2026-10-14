@@ -45,8 +45,9 @@ const AddMatchForm = () => {
     if (!playerName) return alert('Enter a player name first.');
 
     try {
-      const res = await fetch(`/api/match/ids?playerName=${playerName}`);
+      const res = await fetch(`/api/match/ids?playerName=${encodeURIComponent(playerName.trim())}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch matches');
       setMatchIds(data.ids || []);
       setMessage('✅ Match IDs fetched successfully!');
     } catch (error) {
@@ -147,7 +148,6 @@ const AddMatchForm = () => {
           name="matchId"
           value={form.matchId}
           onChange={handleChange}
-          required
           className="w-full p-2 rounded bg-[#2c2c2e] text-white outline-none focus:ring-2 focus:ring-yellow-400"
         >
           <option value="">-- Select Match ID --</option>
@@ -159,6 +159,11 @@ const AddMatchForm = () => {
         </select>
       </div>
 
+      <div>
+        <label htmlFor="manualMatchId" className="block text-sm mb-1">Or enter a Match ID manually</label>
+        <input id="manualMatchId" name="matchId" value={form.matchId} onChange={handleChange}
+          className="w-full p-2 rounded bg-[#2c2c2e] text-white" placeholder="PUBG Match ID" />
+      </div>
       <button
         type="submit"
         className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded transition duration-200"

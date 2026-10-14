@@ -73,6 +73,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!Array.isArray(players) || players.length === 0 || players.some((p) => !p || typeof p !== 'object')) {
+      return NextResponse.json({ message: 'A non-empty player roster is required' }, { status: 400 });
+    }
+    const names = players.map((p) => typeof p.ign === 'string' ? p.ign.trim().toLowerCase() : '');
+    if (new Set(names).size !== names.length) {
+      return NextResponse.json({ message: 'Duplicate players in the roster are not allowed' }, { status: 400 });
+    }
     let leaderCount = 0;
 
     for (let i = 0; i < players.length; i++) {
@@ -175,9 +182,9 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    if (type === 'squad' && playerCount < 4) {
+    if (type === 'squad' && (playerCount < 4 || playerCount > 6)) {
       return NextResponse.json(
-        { message: 'Squad tournament requires exactly 4 players' },
+        { message: 'Squad tournament requires 4 to 6 registered players (4 active players)' },
         { status: 400 }
       );
     }

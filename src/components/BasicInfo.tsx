@@ -36,6 +36,9 @@ const BasicInfo: React.FC<BasicInfoProps> = ({ tournament, teams, onDiscordSetup
                   <Link href={`/${tournament._id}/add-match`} className=" bg-amber-600 rounded-3xl text-white px-4 py-2 !rounded-button whitespace-nowrap hover:bg-primary/90 transition-colors">
                     Add Match
                   </Link>
+                  <Link href={`/${tournament._id}/live-score`} className="bg-yellow-400 rounded-3xl text-black px-4 py-2 !rounded-button whitespace-nowrap font-semibold hover:bg-yellow-300 transition-colors">
+                    Scorer Keys
+                  </Link>
                   <GenerateObserverZip teams={teams.filter(team => team.isApproved === true)}  />
                   <button onClick={onDiscordSetup} className='px-6 py-2 bg-blue-900 rounded-3xl cursor-pointer'>Setup Discord</button>
                 </div>
@@ -46,7 +49,7 @@ const BasicInfo: React.FC<BasicInfoProps> = ({ tournament, teams, onDiscordSetup
                     START DATE
                   </div>
                   <div className="text-white font-medium">
-                    {new Date(tournament.startingDate).toLocaleDateString('en-US', {
+                    {new Date(tournament.startingDate).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit',
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
@@ -58,7 +61,7 @@ const BasicInfo: React.FC<BasicInfoProps> = ({ tournament, teams, onDiscordSetup
                     END DATE
                   </div>
                   <div className="text-white font-medium">
-                    {new Date(tournament.endDate).toLocaleDateString('en-US', {
+                    {new Date(tournament.endDate).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit',
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',

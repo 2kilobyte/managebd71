@@ -18,7 +18,7 @@ export async function POST(req: Request) {
         const db = client.db('bd71'); // Replace with your DB name
 
         // Check if the team already exists
-        const existingTeam = await db.collection('teams').findOne({ teamGameId });
+        const existingTeam = await db.collection('teams').findOne({ teamGameId, tournamentId });
         if (existingTeam) {
             return NextResponse.json(       
                 { error: 'Team already exists for this tournament.' },
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
             tournamentId, // Assuming no tournament association at creation
             teamGameId, // Incremental team ID
             teamName,
+            isApproved: true,
             players: [
                 { ign: player1, isLeader: leader === player1 },
                 player2 ? { ign: player2, isLeader: leader === player2 } : null,
