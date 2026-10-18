@@ -30,6 +30,10 @@ export async function POST(req: Request) {
 
 
         const { tournamentName, startingDate, endDate, tier, region, prize, totalMatch, tournamentType, tournamentImage, isScream } = body;
+        const entryFeeAmount = body.entryFeeAmount === null || body.entryFeeAmount === '' || body.entryFeeAmount === undefined
+            ? null
+            : Number(body.entryFeeAmount);
+        const entryFeeBkashNumber = typeof body.entryFeeBkashNumber === 'string' ? body.entryFeeBkashNumber.trim() : '';
 
         if ( !tournamentName || !startingDate || !endDate || !tier || !region || !prize || !totalMatch || !tournamentType || !tournamentImage ) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -42,6 +46,12 @@ export async function POST(req: Request) {
         }
         if (!['Solo', 'Duo', 'Squad'].includes(tournamentType) || !Number.isInteger(Number(totalMatch)) || Number(totalMatch) < 1) {
             return NextResponse.json({ error: 'Choose a valid tournament type and positive match count.' }, { status: 400 });
+        }
+        if (entryFeeAmount !== null && (!Number.isFinite(entryFeeAmount) || entryFeeAmount < 0)) {
+            return NextResponse.json({ error: 'Entry fee must be a valid amount greater than or equal to zero.' }, { status: 400 });
+        }
+        if (entryFeeAmount !== null && entryFeeAmount > 0 && !entryFeeBkashNumber) {
+            return NextResponse.json({ error: 'A bKash number is required when an entry fee is set.' }, { status: 400 });
         }
         // Generate 30 unique 16-character team codes (format: xxxx-xxxx-xxxx-xxxx, lowercase, alphanumeric)
         // const generateTeamCode = () => {
@@ -72,6 +82,8 @@ export async function POST(req: Request) {
             tournamentImage,
             region,
             prize,
+            entryFeeAmount,
+            entryFeeBkashNumber,
             isScream,
             totalMatch,
             createdAt: new Date(),

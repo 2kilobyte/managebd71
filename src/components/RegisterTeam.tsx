@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
 
 type Player = {
@@ -15,8 +15,14 @@ type TeamForm = {
     // teamCode: string;
     teamShortName: string;
     mobileNumber: string;
+    transactionId: string;
     players: Player[];
     leaderIndex: number;
+};
+
+type TournamentPaymentInfo = {
+    entryFeeAmount?: number | null;
+    entryFeeBkashNumber?: string | null;
 };
 
 const initialPlayer: Player = { ign: "", discord: "", realName: "" };
@@ -28,6 +34,7 @@ const RegisterTeam: React.FC = () => {
         // teamCode: "",
         teamShortName: "",
         mobileNumber: "",
+        transactionId: "",
         players: Array(1).fill(initialPlayer),
         leaderIndex: 0,
     });
@@ -35,6 +42,27 @@ const RegisterTeam: React.FC = () => {
 
     const [showDiscordImage, setShowDiscordImage] = useState(false);
     const [showTeamLogoImage, setShowTeamLogoImage] = useState(false);
+    const [paymentInfo, setPaymentInfo] = useState<TournamentPaymentInfo | null>(null);
+    const [paymentInfoLoading, setPaymentInfoLoading] = useState(true);
+
+    useEffect(() => {
+        const pathParts = window.location.pathname.split("/").filter(Boolean);
+        const tournamentId = pathParts[pathParts.length - 1] === "register" ? pathParts[pathParts.length - 2] : pathParts[0];
+        if (!tournamentId) {
+            setPaymentInfoLoading(false);
+            return;
+        }
+        fetch(`/api/tournaments/details?tournamentId=${encodeURIComponent(tournamentId)}`, { cache: "no-store" })
+            .then(async (response) => {
+                if (!response.ok) throw new Error("Could not load tournament payment details.");
+                const data = await response.json();
+                setPaymentInfo(data.tournament || null);
+            })
+            .catch(() => setPaymentInfo(null))
+            .finally(() => setPaymentInfoLoading(false));
+    }, []);
+
+    const entryFeeAmount = Number(paymentInfo?.entryFeeAmount) > 0 ? Number(paymentInfo?.entryFeeAmount) : null;
 
 
     const handleChange = (
@@ -69,6 +97,10 @@ const RegisterTeam: React.FC = () => {
             toast.error('Team short name max 4 letter', { id: toastId })
             return;
         }
+        if (entryFeeAmount !== null && !form.transactionId.trim()) {
+            toast.error('Enter the bKash transaction ID to register for this paid tournament.', { id: toastId });
+            return;
+        }
 
         const transformedPlayers = form.players.map((player, index) => ({
             ign: player.ign,
@@ -90,6 +122,7 @@ const RegisterTeam: React.FC = () => {
             teamName: form.teamName,
             teamLogo: form.teamLogo,
             mobileNumber: form.mobileNumber,
+            transactionId: form.transactionId.trim(),
             // teamCode: form.teamCode,
             teamShortName: form.teamShortName,
             players: transformedPlayers,
@@ -123,6 +156,7 @@ const RegisterTeam: React.FC = () => {
                 // teamCode: "",
                 teamShortName: "",
                 mobileNumber: "",
+                transactionId: "",
                 players: [initialPlayer],
                 leaderIndex: 0,
             });
@@ -137,6 +171,15 @@ const RegisterTeam: React.FC = () => {
     return (
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-4 space-y-6">
             <h2 className="text-2xl font-bold mb-4">Register Tournament Team</h2>
+
+            {!paymentInfoLoading && entryFeeAmount !== null && (
+                <section className="rounded-xl border border-amber-400/60 bg-gray-900 p-5 text-white" aria-label="Tournament entry fee">
+                    <h3 className="text-lg font-bold text-amber-300">Tournament Entry Fee</h3>
+                    <p className="mt-2">Entry fee: <strong>৳ {entryFeeAmount.toLocaleString("en-BD")}</strong></p>
+                    {paymentInfo?.entryFeeBkashNumber && <p className="mt-1">Send Money to bKash: <strong className="font-mono">{paymentInfo.entryFeeBkashNumber}</strong></p>}
+                    <p className="mt-2 text-sm text-gray-300">Use bKash Send Money and send the exact entry-fee amount. Enter the transaction ID below.</p>
+                </section>
+            )}
 
             <div>
                 <label className="block font-medium mb-1">
@@ -218,6 +261,26 @@ const RegisterTeam: React.FC = () => {
                     placeholder="Enter mobile number"
                 />
             </div>
+
+            {entryFeeAmount !== null && (
+                <div>
+                    <label className="block font-medium mb-1" htmlFor="transactionId">
+                        bKash Transaction ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        id="transactionId"
+                        type="text"
+                        name="transactionId"
+                        required
+                        minLength={1}
+                        maxLength={64}
+                        value={form.transactionId}
+                        onChange={handleChange}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Enter the transaction ID from your bKash receipt"
+                    />
+                </div>
+            )}
 
             {/* <div>
                 <label className="block font-medium mb-1">

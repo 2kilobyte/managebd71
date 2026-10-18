@@ -138,6 +138,13 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
             </Link>
           </div>
 
+          {team.transactionId && (
+            <div className="mt-4 rounded-lg border border-amber-500/40 bg-gray-900 px-4 py-3 text-sm text-amber-200">
+              <span className="mr-2 font-semibold">bKash Transaction ID</span>
+              <code className="break-all font-mono text-white">{team.transactionId}</code>
+            </div>
+          )}
+
           <div className="grid mt-6">
             {team.players.map((player, idx) => (
               <div

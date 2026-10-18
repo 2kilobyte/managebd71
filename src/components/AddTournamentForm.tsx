@@ -16,6 +16,8 @@ export default function AddTournamentForm() {
     region: '',
     tournamentImage: '',
     prize: '',
+    entryFeeAmount: '',
+    entryFeeBkashNumber: '',
     totalMatch: '',
     tournamentType: '',
     isScream: false, // ✅ Added field
@@ -49,6 +51,8 @@ export default function AddTournamentForm() {
           startingDate: new Date(`${form.startingDate}:00+06:00`),
           endDate: new Date(`${form.endDate}:00+06:00`),
           totalMatch: Number(form.totalMatch),
+          entryFeeAmount: form.entryFeeAmount === '' ? null : Number(form.entryFeeAmount),
+          entryFeeBkashNumber: form.entryFeeBkashNumber.trim(),
         }),
       });
 
@@ -65,6 +69,8 @@ export default function AddTournamentForm() {
           region: '',
           tournamentImage: '',
           prize: '',
+          entryFeeAmount: '',
+          entryFeeBkashNumber: '',
           totalMatch: '',
           tournamentType: '',
           isScream: false, // ✅ Reset checkbox
@@ -105,6 +111,8 @@ export default function AddTournamentForm() {
         { name: 'region', label: 'Region' },
         { name: 'tournamentImage', label: 'Tournament Image' },
         { name: 'prize', label: 'Prize Pool (e.g. $500)' },
+        { name: 'entryFeeAmount', label: 'Entry Fee (BDT, leave blank for free)', type: 'number' },
+        { name: 'entryFeeBkashNumber', label: 'Entry Fee bKash Number' },
         { name: 'totalMatch', label: 'Total Matches', type: 'number' },
       ].map(({ name, label, type = 'text' }) => (
         <div className="mb-4" key={name}>
@@ -113,6 +121,8 @@ export default function AddTournamentForm() {
           </label>
           <input
             type={type}
+            min={name === 'entryFeeAmount' ? '0' : undefined}
+            step={name === 'entryFeeAmount' ? 'any' : undefined}
             id={name}
             name={name}
             value={form[name as keyof typeof form] as string}

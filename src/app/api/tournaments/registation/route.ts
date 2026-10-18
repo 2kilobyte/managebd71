@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       teamLogo,
       // teamCode,
       mobileNumber,
+      transactionId,
       players,
       teamShortName
     } = body;
@@ -140,6 +141,12 @@ export async function POST(req: Request) {
       );
     }
 
+    const entryFeeAmount = Number(tournament.entryFeeAmount);
+    const submittedTransactionId = typeof transactionId === 'string' ? transactionId.trim() : '';
+    if (Number.isFinite(entryFeeAmount) && entryFeeAmount > 0 && !submittedTransactionId) {
+      return NextResponse.json({ message: 'A bKash transaction ID is required for this paid tournament.' }, { status: 400 });
+    }
+
     // Calculate teamNumber: if 2 teams registered, next teamNumber is 3
     // const teamCount = await db.collection('teams').countDocuments({
     //   tournamentId,
@@ -208,6 +215,7 @@ export async function POST(req: Request) {
       // teamCode,
       isApproved: false,
       mobileNumber,
+      ...(submittedTransactionId ? { transactionId: submittedTransactionId } : {}),
       teamShortName,
       teamGameId: 1000,
       players,

@@ -7,6 +7,8 @@ export interface Tournament {
     region: string;
     tournamentImage: string;
     prize: string;
+    entryFeeAmount?: number | null;
+    entryFeeBkashNumber?: string;
     status: string;
     tournamentType: string; // Added tournamentType
     teamCodes: string[];
@@ -28,6 +30,7 @@ export interface Team {
   teamLogo: string;
   teamCode: string;
   mobileNumber: string;
+  transactionId?: string;
   teamGameId: number;
   players: Player[];
   tournamentId: string;
