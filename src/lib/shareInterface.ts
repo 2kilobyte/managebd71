@@ -9,6 +9,7 @@ export interface Tournament {
     prize: string;
     entryFeeAmount?: number | null;
     entryFeeBkashNumber?: string;
+    entryFeeRefundable?: boolean;
     status: string;
     tournamentType: string; // Added tournamentType
     teamCodes: string[];

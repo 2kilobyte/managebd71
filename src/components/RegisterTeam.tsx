@@ -23,6 +23,7 @@ type TeamForm = {
 type TournamentPaymentInfo = {
     entryFeeAmount?: number | null;
     entryFeeBkashNumber?: string | null;
+    entryFeeRefundable?: boolean;
 };
 
 const initialPlayer: Player = { ign: "", discord: "", realName: "" };
@@ -175,7 +176,7 @@ const RegisterTeam: React.FC = () => {
             {!paymentInfoLoading && entryFeeAmount !== null && (
                 <section className="rounded-xl border border-amber-400/60 bg-gray-900 p-5 text-white" aria-label="Tournament entry fee">
                     <h3 className="text-lg font-bold text-amber-300">Tournament Entry Fee</h3>
-                    <p className="mt-2">Entry fee: <strong>৳ {entryFeeAmount.toLocaleString("en-BD")}</strong></p>
+                    <p className="mt-2">Entry fee: <strong>৳ {entryFeeAmount.toLocaleString("en-BD")}</strong> <span>({paymentInfo?.entryFeeRefundable ? "Refundable" : "Non-refundable"})</span></p>
                     {paymentInfo?.entryFeeBkashNumber && <p className="mt-1">Send Money to bKash: <strong className="font-mono">{paymentInfo.entryFeeBkashNumber}</strong></p>}
                     <p className="mt-2 text-sm text-gray-300">Use bKash Send Money and send the exact entry-fee amount. Enter the transaction ID below.</p>
                 </section>

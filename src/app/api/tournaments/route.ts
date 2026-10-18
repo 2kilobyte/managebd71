@@ -84,6 +84,7 @@ export async function POST(req: Request) {
             prize,
             entryFeeAmount,
             entryFeeBkashNumber,
+            entryFeeRefundable: entryFeeAmount !== null && entryFeeAmount > 0 && body.entryFeeRefundable === true,
             isScream,
             totalMatch,
             createdAt: new Date(),

@@ -18,6 +18,7 @@ export default function AddTournamentForm() {
     prize: '',
     entryFeeAmount: '',
     entryFeeBkashNumber: '',
+    entryFeeRefundable: false,
     totalMatch: '',
     tournamentType: '',
     isScream: false, // ✅ Added field
@@ -71,6 +72,7 @@ export default function AddTournamentForm() {
           prize: '',
           entryFeeAmount: '',
           entryFeeBkashNumber: '',
+          entryFeeRefundable: false,
           totalMatch: '',
           tournamentType: '',
           isScream: false, // ✅ Reset checkbox
@@ -151,6 +153,20 @@ export default function AddTournamentForm() {
           <option value="Duo">Duo</option>
           <option value="Squad">Squad</option>
         </select>
+      </div>
+
+      <div className="mb-4 flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="entryFeeRefundable"
+          name="entryFeeRefundable"
+          checked={form.entryFeeRefundable}
+          onChange={handleChange}
+          className="h-4 w-4 accent-yellow-500"
+        />
+        <label htmlFor="entryFeeRefundable" className="font-semibold text-yellow-500">
+          Entry fee is refundable
+        </label>
       </div>
 
       {/* ✅ Scrim Checkbox */}
