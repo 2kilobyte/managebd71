@@ -93,7 +93,8 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       message: 'Team information updated.',
-      team: { _id: teamId, teamName, teamShortName, teamLogo, teamColor, teamCode, mobileNumber, transactionId, players: mergedPlayers },
+      // teamGameId is intentionally excluded from $set above; edits cannot change it.
+      team: { _id: teamId, teamGameId: existingTeam.teamGameId, teamName, teamShortName, teamLogo, teamColor, teamCode, mobileNumber, transactionId, players: mergedPlayers },
     });
   } catch (error) {
     console.error('Error updating team information:', error);

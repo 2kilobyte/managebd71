@@ -98,11 +98,13 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
         throw new Error(data.error || 'Failed to approve team');
       }
 
+      const data = await res.json();
+
       toast.success('Team approved successfully!', { id: toastId });
 
       // update UI state instantly
       setTeamList((prev) =>
-        prev.map((t) => (t._id === teamId ? { ...t, isApproved: true } : t))
+        prev.map((t) => (t._id === teamId ? { ...t, ...data.team, isApproved: true } : t))
       );
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error approving team', { id: toastId });
@@ -174,6 +176,9 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
             >
               {team.teamShortName}
             </div>
+            <span className="shrink-0 font-mono text-xs font-semibold text-gray-400" aria-label={`Team Game ID ${team.teamGameId ?? 1000}`}>
+              #{team.teamGameId ?? 1000}
+            </span>
           </div>
           <div
             style={team.isApproved ? { backgroundColor: 'green' } : { backgroundColor: 'red' }}
@@ -211,7 +216,6 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
               <MdLocalPhone className="mr-2" /> {team.mobileNumber}
             </Link>
           </div>
-
           {editingTeamId === team._id ? (() => {
             const draft = teamDrafts[team._id] ?? team;
             const inputClass = 'w-full min-w-0 rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-amber-400';

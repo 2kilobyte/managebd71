@@ -36,7 +36,7 @@ export async function POST(req: Request) {
             );
         }
 
-        if (team.isApproved) return NextResponse.json({ message: 'Team is already approved.' });
+        if (team.isApproved) return NextResponse.json({ message: 'Team is already approved.', team: { _id: teamId, teamGameId: team.teamGameId, isApproved: true } });
         const approved = await db.collection('teams').find({ tournamentId, isApproved: true }).toArray();
         const highest = Math.max(2, ...approved.map((t) => Number(t.teamGameId) || 2));
         const counters = db.collection<{ _id: string; value: number }>('teamSlotCounters');
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json(
-            { message: "Team approved successfully." },
+            { message: "Team approved successfully.", team: { _id: teamId, teamGameId, isApproved: true } },
             { status: 200 }
         );
     } catch (error) {
