@@ -6,7 +6,6 @@ import Header from '@/components/Header';
 import BasicInfo from '@/components/BasicInfo';
 import type { Team, Tournament } from '@/lib/shareInterface';
 import Participents from '@/components/Participents';
-import toast from 'react-hot-toast';
 
 const TournamentDetails = () => {
   const { tournamentId } = useParams();
@@ -36,33 +35,6 @@ const TournamentDetails = () => {
     fetchTournament();
   }, [tournamentId]);
 
-
-   // ✅ Define the Discord setup handler function
-  const handleDiscordSetup = async () => {
-    if (!tournamentId) {
-      toast.error("Tournament ID not found.");
-      return;
-    }
-    try {
-      toast.loading("Setting up Discord...");
-      const response = await fetch(`/api/tournaments/discord?tournamentId=${tournamentId}`, {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-      toast.dismiss(); // Remove loading toast
-
-      if (!response.ok) {
-         toast.error(data.error || 'Failed to setup Discord');
-      }
-
-      toast.success(data.message || 'Discord setup completed!');
-    } catch (error: unknown) {
-      toast.dismiss();
-      toast.error(error instanceof Error ? error.message : 'Something went wrong.');
-    }
-  };
-
   return (
     <div className="admin-shell">
       <Header />
@@ -71,7 +43,7 @@ const TournamentDetails = () => {
       }{
         tournament && !loading &&
       <main className="admin-content">
-        <BasicInfo onDiscordSetup={handleDiscordSetup} tournament={tournament} teams={teams}  />
+        <BasicInfo tournament={tournament} teams={teams}  />
         <div className="section-toolbar"><h2>Registered teams</h2><span>{teams.length} total · {teams.filter((team) => team.isApproved).length} approved</span></div>
         <Participents teams={teams} />
       </main>
