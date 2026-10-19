@@ -1,5 +1,5 @@
 import { Team, Tournament } from '@/lib/shareInterface';
-import Image from 'next/image';
+import SafeAdminImage from './SafeAdminImage';
 import Link from 'next/link';
 import React from 'react';
 import { IoIosArrowRoundBack } from 'react-icons/io';
@@ -21,7 +21,7 @@ const BasicInfo: React.FC<BasicInfoProps> = ({ tournament, teams, onDiscordSetup
       <div className="bg-[#24272c] rounded-lg overflow-hidden">
         <div className="p-6">
           <div className="flex items-center space-x-6">
-            <div> <Image priority src={tournament.tournamentImage} width={100} height={100} alt='Logo' className='w-[100px] h-[100px] rounded' /> </div>
+            <div> <SafeAdminImage priority src={tournament.tournamentImage} width={100} height={100} alt='Logo' className='w-[100px] h-[100px] rounded' /> </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div className='flex flex-row'>

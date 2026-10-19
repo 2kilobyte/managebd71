@@ -29,6 +29,7 @@ export interface Team {
   isApproved: boolean;
   teamShortName: string;
   teamLogo: string;
+  teamColor?: string;
   teamCode: string;
   mobileNumber: string;
   transactionId?: string;
