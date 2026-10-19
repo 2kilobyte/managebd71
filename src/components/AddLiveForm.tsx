@@ -37,7 +37,7 @@ const AddLiveForm = () => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-xl mx-auto bg-[#1c1c1e] text-white p-6 rounded-2xl shadow-lg space-y-6 border border-[#333]"
+      className="admin-form space-y-6 text-white"
     >
       <h2 className="text-2xl font-bold text-center text-yellow-400">Add Facebook Live Stream</h2>
 

@@ -94,7 +94,7 @@ export default function AddTournamentForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-xl mx-auto bg-[#0f1116] p-8 rounded-2xl shadow-lg border border-gray-700 text-white"
+      className="admin-form space-y-4 text-white"
     >
       <h2 className="text-2xl font-bold mb-6 text-yellow-400">Add Tournament</h2>
 

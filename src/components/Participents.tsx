@@ -154,28 +154,30 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="team-grid">
       {teamList.map((team) => (
         <div
           key={team._id}
-          className="relative bg-gray-800 p-4 rounded-lg mt-20 min-h-25"
+          className="team-card"
         >
-          <SafeAdminImage
-            src={team.teamLogo}
-            alt={team.teamName}
-            width={100}
-            height={100}
-            className="bg-gray-800 aspect-square object-cover rounded -top-18 absolute"
-          />
-          <div
-            style={hasValidTeamColor(team.teamColor) ? { backgroundColor: team.teamColor, color: '#fff' } : undefined}
-            className={`ml-22 ${hasValidTeamColor(team.teamColor) ? '' : 'bg-gray-700 text-orange-300'} p-2 rounded w-25 -mt-13 text-center rounded-tr-4xl font-bold`}
-          >
-            {team.teamShortName}
+          <div className="team-identity">
+            <SafeAdminImage
+              src={team.teamLogo}
+              alt={team.teamName}
+              width={100}
+              height={100}
+              className="team-card-logo rounded-xl object-cover"
+            />
+            <div
+              style={hasValidTeamColor(team.teamColor) ? { backgroundColor: team.teamColor, color: '#fff' } : undefined}
+              className={`team-card-short ${hasValidTeamColor(team.teamColor) ? '' : 'bg-gray-700 text-orange-300'} text-center font-bold`}
+            >
+              {team.teamShortName}
+            </div>
           </div>
           <div
             style={team.isApproved ? { backgroundColor: 'green' } : { backgroundColor: 'red' }}
-            className="absolute right-3 top-3 px-2 py-1 rounded"
+            className="absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-semibold"
           >
             {team.isApproved ? 'Approved' : 'Not Approved'}
           </div>
@@ -198,13 +200,13 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
                   Delete
                 </button> */}
 
-          <div className="flex flex-row justify-between items-center">
-            <h2 className="text-white text-4xl font-bold mt-8 ">
+          <div className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <h2 className="text-white font-bold">
               {team.teamName}
             </h2>
             <Link
               href={`tel:${team.mobileNumber}`}
-              className="text-gray-500 hover:text-gray-400 transition-all text-lg font-bold mt-14 flex items-center"
+              className="flex min-w-0 items-center text-sm font-semibold text-gray-400 transition-all hover:text-gray-200"
             >
               <MdLocalPhone className="mr-2" /> {team.mobileNumber}
             </Link>
@@ -248,7 +250,7 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
                 className="rounded-lg text-2xl flex flex-row items-center relative"
                 key={idx}
               >
-                <div className="grid grid-cols-3 gap-3 w-full mb-4">
+                <div className="team-player-grid">
                   <div className="flex flex-row items-center bg-gray-900 rounded-lg">
                     <div className="p-2 bg-gray-700 rounded-lg mr-2">
                       <IoGameControllerOutline />

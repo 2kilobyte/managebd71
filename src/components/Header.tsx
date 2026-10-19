@@ -1,68 +1,63 @@
-"use client"
-import Image from 'next/image'
-import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
 interface LiveData {
   _id: string;
-  videoId: string; // can be full YouTube URL, channel ID, or plain video ID
+  videoId: string;
   isEnded: boolean;
   createdAt: string;
 }
 
 const Header = () => {
-    const [live, setLive] = useState<LiveData | null>(null);
-      useEffect(() => {
+  const [live, setLive] = useState<LiveData | null>(null);
+
+  useEffect(() => {
     const fetchLive = async () => {
       try {
-        const res = await fetch("/api/lives"); // ✅ updated to /api/lives
-        if (res.ok) {
-          const data = await res.json();
-          setLive(data);
-        }
+        const response = await fetch('/api/lives');
+        if (response.ok) setLive(await response.json());
       } catch (error) {
-        console.error("Error fetching live:", error);
-      } 
+        console.error('Error fetching live:', error);
+      }
     };
-    fetchLive();
+    void fetchLive();
   }, []);
 
-
-  const handleSubmit = async () => {
+  const endLive = async () => {
     try {
-      const res = await fetch('/api/lives/end', {
-        method: 'PUT',
-      });
-      const data = await res.json(); 
-        if (res.ok) {  
-        setLive(null); // Clear the live state
-      }
+      const response = await fetch('/api/lives/end', { method: 'PUT' });
+      if (response.ok) setLive(null);
     } catch (error) {
       console.error('Error ending live stream:', error);
     }
-  }
+  };
 
-    return (
-        <div className="flex items-center justify-between p-4 bg-[#202229] text-white">
-            <div className="flex items-center">
-                <Image width={100} height={100} src="/img/bd71.png" alt="BD71" className="h-10 w-10 mr-2" />
-                <Link href="/">
-                    <span className="text-xl font-bold">BD71 Esports Tournaments</span>
-                </Link>
-            </div>
-            <nav className="space-x-4">
-                <Link href="/lives" className="hover:underline">Lives</Link>
-                <Link href="/add-tournament" className="p-3 bg-amber-700 rounded mr-2">Add Tournaments</Link>
-                {
-                    live && !live.isEnded ? (
-                        <button onClick={handleSubmit} className='px-4 py-2 bg-red-500 cursor-pointer rounded'>End live</button>
-                    )
-                    :
-                    <Link href="/add-live" className="p-3 bg-amber-700 rounded">Add Live</Link>
-                }
-                
-            </nav>
-        </div>
-    )
-}
+  return (
+    <header className="admin-topbar">
+      <div className="admin-topbar-inner">
+        <Link className="admin-brand" href="/" aria-label="BD71 Admin home">
+          <Image width={100} height={100} src="/img/bd71.png" alt="BD71" />
+          <span className="admin-brand-copy">
+            <strong>BD71 Esports</strong>
+            <span>Tournament admin</span>
+          </span>
+        </Link>
+        <nav className="admin-nav" aria-label="Main navigation">
+          <Link href="/">Tournaments</Link>
+          <Link href="/lives">Live stream</Link>
+          <Link className="nav-primary" href="/add-tournament">＋ Add tournament</Link>
+          {live && !live.isEnded ? (
+            <button className="nav-danger" type="button" onClick={endLive}>End live</button>
+          ) : (
+            <Link href="/add-live">＋ Add live</Link>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+};
 
-export default Header
+export default Header;

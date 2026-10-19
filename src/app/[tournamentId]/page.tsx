@@ -4,10 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import BasicInfo from '@/components/BasicInfo';
-import TabsSection from '@/components/tabsSection';
-import StickyButton from '@/components/StickyButton';
-import { Team, Tournament } from '@/lib/shareInterface';
-import GenerateObserverZip from '@/components/GenerateObserverZip';
+import type { Team, Tournament } from '@/lib/shareInterface';
 import Participents from '@/components/Participents';
 import toast from 'react-hot-toast';
 
@@ -67,19 +64,20 @@ const TournamentDetails = () => {
   };
 
   return (
-    <div>
+    <div className="admin-shell">
       <Header />
       {
-        !tournament && loading && <p className="text-white p-4 text-center">Loading tournament details...</p>
+        !tournament && loading && <main className="admin-content"><div className="empty-state">Loading tournament details…</div></main>
       }{
         tournament && !loading &&
-      <div className="container mx-auto">
+      <main className="admin-content">
         <BasicInfo onDiscordSetup={handleDiscordSetup} tournament={tournament} teams={teams}  />
+        <div className="section-toolbar"><h2>Registered teams</h2><span>{teams.length} total · {teams.filter((team) => team.isApproved).length} approved</span></div>
         <Participents teams={teams} />
-      </div>
+      </main>
       }
       {
-        !tournament && !loading && <p className="text-white p-4 text-center">Tournament not found.</p>
+        !tournament && !loading && <main className="admin-content"><div className="empty-state">Tournament not found.</div></main>
       }
     </div>
   );

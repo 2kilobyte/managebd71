@@ -7,14 +7,15 @@ import { useParams } from 'next/navigation';
 export default function AddLive() {
     const { tournamentId } = useParams()
     return (
-        <div className="bg-[#18191D] text-white min-h-screen">
+        <div className="admin-shell text-white">
         <Header />
-        <div className="container mx-auto p-4">
+        <main className="admin-content">
+            <div className="page-heading"><p className="dashboard-kicker">Broadcast</p><h1>Add live stream</h1><p>Set the stream URL shown in the admin live area.</p></div>
             <AddLiveForm />
             <div className='w-full flex justify-center items-center mt-8'>
                 <StickyButton title='Back' link={`/${tournamentId}`} classNames='bg-[#463e3e] p-4 text-center rounded' />
             </div>
-        </div>
+        </main>
         </div>
     );
 }

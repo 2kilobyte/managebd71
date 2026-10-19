@@ -5,9 +5,9 @@ import React from 'react';
 
 const RegisterPage = () => {
     return (
-        <div>
+        <div className="admin-shell">
            <Header />
-           <RegisterTeam />
+           <main className="admin-content"><div className="page-heading"><p className="dashboard-kicker">Tournament operations</p><h1>Add team</h1><p>Register a team directly to this tournament.</p></div><RegisterTeam /></main>
         </div>
     );
 };

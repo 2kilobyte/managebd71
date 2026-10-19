@@ -170,7 +170,7 @@ const RegisterTeam: React.FC = () => {
 
 
     return (
-        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-4 space-y-6">
+        <form onSubmit={handleSubmit} className="admin-form admin-form-wide space-y-6">
             <h2 className="text-2xl font-bold mb-4">Register Tournament Team</h2>
 
             {!paymentInfoLoading && entryFeeAmount !== null && (

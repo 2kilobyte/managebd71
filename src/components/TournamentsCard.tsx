@@ -1,5 +1,3 @@
-// components/TournamentsCard.tsx
-import React from 'react';
 import Link from 'next/link';
 import SafeAdminImage from './SafeAdminImage';
 
@@ -10,49 +8,30 @@ interface TournamentProps {
   tier: string;
   region: string;
   prize: string;
-  tournamentImage: string
+  tournamentImage: string;
 }
 
-const formatDate = (isoDate: string) => {
-  const date = new Date(isoDate);
-  return date.toLocaleDateString("en-GB", {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Date TBA' : date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-const TournamentsCard = ({
-  id,
-  tournamentName,
-  startingDate,
-  tier,
-  region,
-  prize,
-  tournamentImage
-}: TournamentProps) => {
-  
+export default function TournamentsCard({ id, tournamentName, startingDate, tier, region, prize, tournamentImage }: TournamentProps) {
   return (
-    <div className="tournament-card p-4 border-b border-gray-700">
-      <div className="logo mb-2">
-        <SafeAdminImage width={100} height={100} className="w-20 h-20 rounded" src={tournamentImage} alt="Tournament Logo" />
+    <article className="tournament-card">
+      <div className="logo">
+        <SafeAdminImage width={100} height={100} src={tournamentImage} alt={`${tournamentName} logo`} />
       </div>
-      <div className="tournament-details mb-2">
-        <h2 className="text-xl font-semibold">{tournamentName}</h2>
-        <div className="text-sm text-gray-300 space-y-1 flex flex-row gap-4">
-          <p>Starting Date: {formatDate(startingDate)}</p>
-          <p>Tier: {tier}</p>
-          <p>Prize Pool: ${prize}</p>
-          <p>Region: {region}</p>
+      <div className="tournament-details">
+        <h2 title={tournamentName}>{tournamentName}</h2>
+        <div className="tournament-info">
+          <p>Starts {formatDate(startingDate)}</p>
+          <p>{tier || 'Tier TBA'}</p>
+          <p>{region || 'Region TBA'}</p>
+          <p>Prize {prize ? `$${prize}` : 'TBA'}</p>
         </div>
       </div>
-      <div className="read-more">
-        <Link href={`/${id}`} className="text-blue-400 hover:underline">
-          Details
-        </Link>
-      </div>
-    </div>
+      <div className="read-more"><Link href={`/${id}`}>Manage tournament <span aria-hidden="true">→</span></Link></div>
+    </article>
   );
-};
-
-export default TournamentsCard;
+}

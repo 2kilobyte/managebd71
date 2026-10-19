@@ -165,7 +165,7 @@ const GenerateObserverZip: React.FC<Props> = ({ teams }) => {
 
   return (
     <button
-      className="bg-purple-700 px-6 py-2 rounded-3xl cursor-pointer disabled:cursor-wait disabled:opacity-60"
+      className="rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-2 text-sm font-semibold text-violet-200 hover:bg-violet-500/20 disabled:cursor-wait disabled:opacity-60"
       onClick={handleGenerate}
       disabled={isGenerating}
     >

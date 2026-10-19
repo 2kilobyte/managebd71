@@ -60,13 +60,14 @@ export default function Lives() {
   };
 
   return (
-    <div className="bg-[#18191D] text-white min-h-screen">
+    <div className="admin-shell text-white">
       <Header />
-      <div className="container mx-auto min-h-[90vh] flex items-center justify-center p-4">
+      <main className="admin-content">
+        <div className="page-heading"><p className="dashboard-kicker">Broadcast</p><h1>Live stream</h1><p>Monitor and manage the current Facebook live stream.</p></div>
         {loading ? (
-          <div className="text-gray-400 text-lg">Loading...</div>
+          <div className="empty-state">Loading stream…</div>
         ) : liveUrl ? (
-          <div className="w-full max-w-[800px]">
+          <div className="admin-panel mx-auto w-full max-w-[900px] overflow-hidden p-4 sm:p-6">
             {/* Facebook Live Video */}
             <div
               className="fb-video rounded"
@@ -112,11 +113,11 @@ export default function Lives() {
             ></div>
           </div>
         ) : (
-          <div className="text-xl text-center text-gray-400">
+          <div className="empty-state">
             No stream running.
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
