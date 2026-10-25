@@ -2,6 +2,21 @@ import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { NextResponse } from 'next/server';
 
+function isRegistrationClosed(tournament: unknown) {
+  if (!tournament || typeof tournament !== 'object') return false;
+  const state = tournament as { registrationClosed?: unknown; startingDate?: unknown };
+  if (state.registrationClosed === true) return true;
+  if (!(state.startingDate instanceof Date) && typeof state.startingDate !== 'string' && typeof state.startingDate !== 'number') return false;
+  const start = new Date(state.startingDate);
+  if (!Number.isFinite(start.getTime())) return false;
+  const dhakaDate = (value: Date) => {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(value);
+    const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  };
+  return dhakaDate(new Date()) >= dhakaDate(start);
+}
+
 export async function POST(req: Request) {
   try {
     const client = await clientPromise;
@@ -22,6 +37,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { message: 'Invalid tournamentId format' },
         { status: 400 }
+      );
+    }
+
+    const tournament = await db.collection('tournaments').findOne({ _id: new ObjectId(tournamentId) });
+    if (!tournament) {
+      return NextResponse.json({ message: 'Tournament not found' }, { status: 404 });
+    }
+    if (isRegistrationClosed(tournament)) {
+      return NextResponse.json(
+        { message: 'Registration is closed. Please contact the tournament administrator.' },
+        { status: 403, headers: { 'Cache-Control': 'no-store' } }
       );
     }
 
@@ -129,18 +155,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if tournament exists
-    const tournament = await db
-      .collection('tournaments')
-      .findOne({ _id: new ObjectId(tournamentId) });
-
-    if (!tournament) {
-      return NextResponse.json(
-        { message: 'Tournament not found' },
-        { status: 404 }
-      );
-    }
-
     const entryFeeAmount = Number(tournament.entryFeeAmount);
     const submittedTransactionId = typeof transactionId === 'string' ? transactionId.trim() : '';
     if (Number.isFinite(entryFeeAmount) && entryFeeAmount > 0 && !submittedTransactionId) {
@@ -159,18 +173,6 @@ export async function POST(req: Request) {
     //     { message: 'Invalid team code for this tournament' },
     //     { status: 400 }
     //   );
-    // }
-
-    // Prevent registration after tournament starting date
-    // if (tournament.startingDate) {
-    //   const now = new Date();
-    //   const startingDate = new Date(tournament.startingDate);
-    //   if (now >= startingDate) {
-    //     return NextResponse.json(
-    //       { message: 'Registration is closed. Tournament has already started.' },
-    //       { status: 403 }
-    //     );
-    //   }
     // }
 
     const type = tournament.tournamentType.toLowerCase(); // 'solo', 'duo', or 'squad'
@@ -208,6 +210,19 @@ export async function POST(req: Request) {
     //     { status: 409 }
     //   );
     // }
+
+    // Recheck right before writing in case registration was closed while the
+    // registration request was being validated.
+    const latestTournament = await db.collection('tournaments').findOne(
+      { _id: new ObjectId(tournamentId) },
+      { projection: { registrationClosed: 1, startingDate: 1 } },
+    );
+    if (!latestTournament || isRegistrationClosed(latestTournament)) {
+      return NextResponse.json(
+        { message: 'Registration is closed. Please contact the tournament administrator.' },
+        { status: 403, headers: { 'Cache-Control': 'no-store' } }
+      );
+    }
 
     const newTeam = {
       teamName,

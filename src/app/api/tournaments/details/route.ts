@@ -28,7 +28,7 @@ export async function GET(
       return NextResponse.json({ error: 'Tournament not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ tournament });
+    return NextResponse.json({ tournament }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('Error fetching tournament:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
