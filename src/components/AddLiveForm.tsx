@@ -1,69 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 
-const AddLiveForm = () => {
-  const [videoId, setVideoId] = useState('');
-  const [message, setMessage] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!videoId) {
-      setMessage('Live URL is required.');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/lives', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setMessage('✅ Live stream added successfully!');
-        setVideoId('');
-      } else {
-        setMessage(`❌ ${data.error || 'Failed to add live stream.'}`);
-      }
-    } catch (error) {
-      console.error('Error submitting live stream:', error);
-      setMessage('❌ Something went wrong.');
-    }
-  };
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="admin-form space-y-6 text-white"
-    >
-      <h2 className="text-2xl font-bold text-center text-yellow-400">Add Facebook Live Stream</h2>
-
-      <div>
-        <label className="block text-sm mb-1">Live Video Id *</label>
-        <input
-          type="text"
-          name="videoId"
-          value={videoId}
-          onChange={(e) => setVideoId(e.target.value)}
-          placeholder="live video id"
-          required
-          className="w-full p-2 rounded bg-[#2c2c2e] text-white outline-none focus:ring-2 focus:ring-yellow-400"
-        />
-      </div>
-
-      <button
-        type="submit"
-        className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded transition duration-200"
-      >
-        Submit Live Stream
-      </button>
-
-      {message && <div className="text-center mt-4 text-sm text-yellow-300">{message}</div>}
-    </form>
-  );
-};
+const AddLiveForm = () => (
+  <section className="admin-panel space-y-4 text-center text-white">
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 text-2xl text-red-400">▶</div>
+    <h2 className="text-2xl font-bold text-yellow-400">Automatic YouTube Live</h2>
+    <p className="mx-auto max-w-xl text-gray-300">
+      The tournament website now checks the <strong>@bd71esports</strong> channel and displays its active public live stream automatically. You no longer need to enter a video ID here.
+    </p>
+    <p className="mx-auto max-w-xl text-sm text-gray-400">
+      If a broadcast is not embeddable, enable <strong>Allow embedding</strong> in YouTube Studio. The channel API key is configured on the tournament website deployment.
+    </p>
+    <a href="https://www.youtube.com/@bd71esports/live" target="_blank" rel="noopener noreferrer" className="inline-flex rounded-lg bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500">
+      Open BD71 YouTube channel
+    </a>
+  </section>
+);
 
 export default AddLiveForm;
