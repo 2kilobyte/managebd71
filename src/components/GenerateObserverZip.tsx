@@ -130,7 +130,7 @@ const GenerateObserverZip: React.FC<Props> = ({ teams }) => {
 
       for (let id = FIRST_TEAM_ID; id <= LAST_TEAM_ID; id++) {
         const team = teamsByGameId.get(id);
-        if (!team) {
+        if (!team || team.isDisqualified === true) {
           const placeholderName = `${id}.png`;
           csvLines.push([id, '', '', placeholderName, ''].map(csvCell).join(','));
           imagesFolder.file(placeholderName, await createNumberImage(id));

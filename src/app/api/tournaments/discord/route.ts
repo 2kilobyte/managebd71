@@ -102,7 +102,7 @@ export async function POST(request: Request) {
   const db = (await clientPromise).db('bd71');
   let teams: Document[] = [];
   try {
-    teams = await db.collection('teams').find({ tournamentId, isApproved: true }).sort({ teamGameId: 1 }).toArray();
+    teams = await db.collection('teams').find({ tournamentId, isApproved: true, isDisqualified: { $ne: true } }).sort({ teamGameId: 1 }).toArray();
     if (teams.length) await validateDiscordSetupPermissions();
   } catch (error) {
     console.error('Discord setup preflight failed:', error);
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
   try {
     if (!teams.length) {
       await history.updateOne({ _id: runId }, { $set: { status: 'completed', updatedAt: new Date() } });
-      return NextResponse.json({ message: 'No approved teams were found; an empty setup run was recorded.' });
+      return NextResponse.json({ message: 'No eligible approved teams were found; an empty setup run was recorded.' });
     }
 
     for (const team of teams) {
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
     }
 
     await history.updateOne({ _id: runId }, { $set: { status: 'completed', updatedAt: new Date() } });
-    return NextResponse.json({ message: `Discord setup completed for ${teams.length} approved teams.`, runId: runId.toString() });
+    return NextResponse.json({ message: `Discord setup completed for ${teams.length} eligible approved teams.`, runId: runId.toString() });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Discord setup failed.';
     await history.updateOne({ _id: runId }, { $set: { status: 'failed', error: message, updatedAt: new Date() } });
