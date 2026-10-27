@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, OverwriteType, PermissionFlagsBits } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, GatewayIntentBits, OverwriteType, PermissionFlagsBits } from 'discord.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -112,6 +112,68 @@ export const assignRoleToUser = async (
   }
   console.log(`✅ Assigned role to ${member.user.tag}`);
   return true;
+};
+
+export const createDiscordServerInvite = async (): Promise<string> => {
+  const configuredInviteUrl = process.env.DISCORD_SERVER_INVITE_URL?.trim();
+  if (configuredInviteUrl) {
+    let parsedInvite: URL;
+    try { parsedInvite = new URL(configuredInviteUrl); }
+    catch { throw new Error('DISCORD_SERVER_INVITE_URL must be a valid Discord invite URL.'); }
+    const isDiscordInviteHost = parsedInvite.hostname === 'discord.gg'
+      || parsedInvite.hostname === 'www.discord.gg'
+      || parsedInvite.hostname === 'discord.com'
+      || parsedInvite.hostname === 'www.discord.com';
+    const hasInviteCode = parsedInvite.hostname.includes('discord.gg')
+      ? parsedInvite.pathname.length > 1
+      : /^\/invite\/[^/]+\/?$/.test(parsedInvite.pathname);
+    if (parsedInvite.protocol !== 'https:' || !isDiscordInviteHost || !hasInviteCode) {
+      throw new Error('DISCORD_SERVER_INVITE_URL must be an https://discord.gg/... or https://discord.com/invite/... link.');
+    }
+    return configuredInviteUrl;
+  }
+
+  await ensureReady();
+  const guild = await client.guilds.fetch(process.env.GUILD_ID!);
+  const botMember = await guild.members.fetchMe();
+  const preferredChannelId = process.env.DISCORD_INVITE_CHANNEL_ID?.trim();
+  const channels = await guild.channels.fetch();
+  const publicTextChannels = [...channels.values()]
+    .filter((channel) => channel?.isTextBased())
+    .filter((channel) => Boolean(channel && 'createInvite' in channel))
+    .filter((channel) => channel!.permissionsFor(guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel))
+    .filter((channel) => channel!.permissionsFor(botMember)?.has(PermissionFlagsBits.CreateInstantInvite));
+
+  const channel = preferredChannelId
+    ? publicTextChannels.find((candidate) => candidate?.id === preferredChannelId)
+    : publicTextChannels.find((candidate) => candidate?.id === guild.systemChannelId) ?? publicTextChannels[0];
+  if (!channel || !channel.isTextBased() || !('createInvite' in channel)) {
+    throw new Error('No public Discord text channel is available for an invite. Set DISCORD_INVITE_CHANNEL_ID to a public welcome channel where the bot can create invites.');
+  }
+
+  const invite = await channel.createInvite({
+    maxAge: 60 * 60 * 24 * 7,
+    maxUses: 0,
+    unique: false,
+    reason: 'Tournament team member onboarding',
+  });
+  return invite.url;
+};
+
+export const sendTournamentInviteDM = async (
+  discordId: string,
+  tournamentName: string,
+  teamName: string,
+  inviteUrl: string,
+): Promise<void> => {
+  await ensureReady();
+  const user = await client.users.fetch(discordId);
+  await user.send({
+    content: `You are part of the **${teamName}** team for **${tournamentName}**. Please join this Discord server to access your team channel.`,
+    components: [new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Join this Discord server').setURL(inviteUrl),
+    )],
+  });
 };
 
 
@@ -241,30 +303,65 @@ export const setChannelPermissions = async (
   }
 };
 
-export const removeRoleFromUser = async (discordId: string, roleId: string): Promise<void> => {
+export const removeRoleFromUser = async (
+  discordId: string,
+  roleId: string,
+): Promise<'member-left' | 'already-absent' | 'removed'> => {
   await ensureReady();
   const guild = await client.guilds.fetch(process.env.GUILD_ID!);
-  const member = await guild.members.fetch(discordId).catch(() => null);
-  if (member?.roles.cache.has(roleId)) await member.roles.remove(roleId);
+  let member;
+  try {
+    member = await guild.members.fetch({ user: discordId, force: true });
+  } catch (error) {
+    if (Number((error as { code?: unknown })?.code) === 10007) return 'member-left';
+    throw error;
+  }
+  if (!member.roles.cache.has(roleId)) return 'already-absent';
+  try {
+    await member.roles.remove(roleId, 'Tournament Discord cleanup');
+    return 'removed';
+  } catch (error) {
+    // A role that was already deleted needs no further cleanup.
+    if (Number((error as { code?: unknown })?.code) === 10011) return 'already-absent';
+    return permissionError('remove a setup-assigned role', error, 'The bot needs Manage Roles, and its highest role must be above the role it is removing.');
+  }
 };
 
 export const deleteVoiceChannel = async (channelId: string): Promise<void> => {
   await ensureReady();
   const guild = await client.guilds.fetch(process.env.GUILD_ID!);
-  const channel = await guild.channels.fetch(channelId).catch(() => null);
+  let channel;
+  try {
+    channel = await guild.channels.fetch(channelId, { force: true });
+  } catch (error) {
+    if (Number((error as { code?: unknown })?.code) === 10003) return;
+    throw error;
+  }
   if (channel) {
     try { await channel.delete('Tournament Discord cleanup'); }
-    catch (error) { permissionError('delete a generated channel', error, 'The bot needs Manage Channels for this channel.'); }
+    catch (error) {
+      if (Number((error as { code?: unknown })?.code) === 10003) return;
+      permissionError('delete a generated channel', error, 'The bot needs Manage Channels for this channel.');
+    }
   }
 };
 
 export const deleteTeamRole = async (roleId: string): Promise<void> => {
   await ensureReady();
   const guild = await client.guilds.fetch(process.env.GUILD_ID!);
-  const role = await guild.roles.fetch(roleId).catch(() => null);
+  let role;
+  try {
+    role = await guild.roles.fetch(roleId, { force: true });
+  } catch (error) {
+    if (Number((error as { code?: unknown })?.code) === 10011) return;
+    throw error;
+  }
   if (role && role.id !== guild.roles.everyone.id) {
     try { await role.delete('Tournament Discord cleanup'); }
-    catch (error) { permissionError('delete a generated team role', error, 'The bot needs Manage Roles, and its highest role must be above that team role.'); }
+    catch (error) {
+      if (Number((error as { code?: unknown })?.code) === 10011) return;
+      permissionError('delete a generated team role', error, 'The bot needs Manage Roles, and its highest role must be above that team role.');
+    }
   }
 };
 

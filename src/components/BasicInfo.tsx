@@ -22,7 +22,7 @@ export default function BasicInfo({ tournament, teams }: BasicInfoProps) {
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const [registrationAdminKey, setRegistrationAdminKey] = useState('');
   const [discordBusy, setDiscordBusy] = useState(false);
-  const [discordHistory, setDiscordHistory] = useState<Array<{ id: string; status: string; createdAt: string; channelCount: number; createdRoleCount: number; roleGrantCount: number; error?: string }>>([]);
+  const [discordHistory, setDiscordHistory] = useState<Array<{ id: string; status: string; createdAt: string; channelCount: number; createdRoleCount: number; roleGrantCount: number; missingMemberCount?: number; inviteTrackingEnabled?: boolean; skippedRoleGrants?: Array<{ userId: string; teamName: string; roleName: string; reason: string }>; inviteNotices?: Array<{ userId: string; teamName: string; status: 'sent' | 'failed'; reason?: string }>; error?: string }>>([]);
   const approved = teams.filter((team) => team.isApproved).length;
   const pending = teams.length - approved;
   const dhakaDate = (value: Date) => {
@@ -147,6 +147,19 @@ export default function BasicInfo({ tournament, teams }: BasicInfoProps) {
         {discordHistory.length > 0 && <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{discordHistory.map((run) => <div key={run.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-gray-300">
           <div className="flex items-center justify-between gap-2"><strong className="uppercase tracking-wide text-amber-300">{run.status}</strong><span>{new Date(run.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })}</span></div>
           <p className="mt-1">{run.channelCount} channels · {run.createdRoleCount} created roles · {run.roleGrantCount} role grants</p>
+          {run.inviteTrackingEnabled ? <p className="mt-1 text-sky-200">Invite DM result: {run.missingMemberCount ?? 0} non-member(s) · {run.inviteNotices?.filter((item) => item.status === 'sent').length ?? 0} sent · {run.inviteNotices?.filter((item) => item.status === 'failed').length ?? 0} failed</p> : <p className="mt-1 text-gray-500">Invite DM result is unavailable for this older setup run.</p>}
+          {!!run.skippedRoleGrants?.length && <div className="mt-2 rounded-md border border-amber-400/20 bg-amber-500/5 p-2 text-amber-100">
+            <p className="font-semibold">{run.skippedRoleGrants.length} member role grant(s) skipped:</p>
+            <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-gray-300">
+              {run.skippedRoleGrants.map((item, index) => <li key={`${item.userId}-${item.roleName}-${index}`} className="break-words">{item.teamName} · {item.userId} · {item.reason}</li>)}
+            </ul>
+          </div>}
+          {!!run.inviteNotices?.length && <div className="mt-2 rounded-md border border-sky-400/20 bg-sky-500/5 p-2 text-sky-100">
+            <p className="font-semibold">Discord invite messages:</p>
+            <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto text-gray-300">
+              {run.inviteNotices.map((item, index) => <li key={`${item.userId}-${index}`} className="break-words">{item.teamName} · {item.userId} · {item.status === 'sent' ? 'DM sent' : `DM failed: ${item.reason || 'unknown error'}`}</li>)}
+            </ul>
+          </div>}
           {run.error && <p className="mt-1 break-words text-red-300">{run.error}</p>}
         </div>)}</div>}
       </div>
