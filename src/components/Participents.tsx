@@ -22,6 +22,10 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
   const [teamDrafts, setTeamDrafts] = useState<Record<string, Team>>({});
   const [adminSecret, setAdminSecret] = useState('');
   const [savingTeamId, setSavingTeamId] = useState<string | null>(null);
+  const [disqualifyTeam, setDisqualifyTeam] = useState<Team | null>(null);
+  const [disqualificationReason, setDisqualificationReason] = useState('');
+  const [disqualifyAdminKey, setDisqualifyAdminKey] = useState('');
+  const [disqualifying, setDisqualifying] = useState(false);
 
   const startEditing = (team: Team) => {
     setTeamDrafts((current) => ({
@@ -155,6 +159,31 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
     }
   };
 
+  const handleDisqualify = async () => {
+    if (!disqualifyTeam) return;
+    if (!disqualifyAdminKey.trim()) return toast.error('Enter the Admin key to disqualify this team.');
+    setDisqualifying(true);
+    try {
+      const response = await fetch('/api/tournaments/teams/disqualify', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-bd71-admin-secret': disqualifyAdminKey.trim() },
+        body: JSON.stringify({ teamId: disqualifyTeam._id, tournamentId: disqualifyTeam.tournamentId, reason: disqualificationReason.trim() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not disqualify team.');
+
+      setTeamList((current) => current.map((team) => team._id === disqualifyTeam._id ? { ...team, ...data.team } : team));
+      toast.success(`${disqualifyTeam.teamName} disqualified.`);
+      setDisqualifyTeam(null);
+      setDisqualificationReason('');
+      setDisqualifyAdminKey('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not disqualify team.');
+    } finally {
+      setDisqualifying(false);
+    }
+  };
+
   return (
     <div className="team-grid">
       {teamList.map((team) => (
@@ -181,10 +210,10 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
             </span>
           </div>
           <div
-            style={team.isApproved ? { backgroundColor: 'green' } : { backgroundColor: 'red' }}
+            style={team.isDisqualified ? { backgroundColor: '#991b1b' } : team.isApproved ? { backgroundColor: 'green' } : { backgroundColor: 'red' }}
             className="absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-semibold"
           >
-            {team.isApproved ? 'Approved' : 'Not Approved'}
+            {team.isDisqualified ? 'Disqualified' : team.isApproved ? 'Approved' : 'Not Approved'}
           </div>
           {/* <button
                   onClick={() => handleDelete(team._id, team.tournamentId)}
@@ -284,7 +313,7 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
 
           {/* Approve / Decline / Delete Buttons */}
           <div className="flex justify-between items-center mt-4">
-            {!team.isApproved ? (
+            {!team.isApproved && !team.isDisqualified ? (
               <div className="flex gap-3">
                 <button
                   onClick={() => handleApprove(team._id, team.tournamentId)}
@@ -311,6 +340,8 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
                   Delete
                 </button>
               </div>
+            ) : team.isDisqualified ? (
+              <span className="rounded-full bg-red-950/70 px-4 py-2 text-sm font-semibold text-red-200">Disqualified · cannot be approved</span>
             ) : (
               <div className="flex gap-3">
                 <button
@@ -322,9 +353,31 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
                 
               </div>
             )}
+            {!team.isDisqualified && <button
+              type="button"
+              onClick={() => { setDisqualifyTeam(team); setDisqualificationReason(''); setDisqualifyAdminKey(''); }}
+              className="rounded-3xl border border-red-400/50 px-5 py-2 font-semibold text-red-200 transition-colors hover:bg-red-950/60"
+            >Disqualify</button>}
           </div>
+          {team.isDisqualified && team.disqualificationReason && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3 text-sm text-red-100"><strong>Disqualification reason:</strong> {team.disqualificationReason}</div>}
         </div>
       ))}
+      {disqualifyTeam && <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !disqualifying) setDisqualifyTeam(null); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="disqualify-team-title" className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-[#17191d] p-5 shadow-2xl sm:p-6">
+          <h2 id="disqualify-team-title" className="text-xl font-bold text-white">Disqualify {disqualifyTeam.teamName}?</h2>
+          <p className="mt-2 text-sm text-gray-300">You can add a reason to show on the public tournament card, or leave it blank.</p>
+          <label className="mt-5 grid gap-2 text-sm font-semibold text-gray-200" htmlFor="disqualification-reason">Reason (optional)
+            <textarea id="disqualification-reason" autoFocus maxLength={500} rows={4} value={disqualificationReason} onChange={(event) => setDisqualificationReason(event.target.value)} placeholder="Optional: explain why this team is disqualified" className="resize-y rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-red-400/70" />
+          </label>
+          <label className="mt-4 grid gap-2 text-sm font-semibold text-gray-200" htmlFor="disqualify-admin-key">Admin key
+            <input id="disqualify-admin-key" type="password" autoComplete="off" value={disqualifyAdminKey} onChange={(event) => setDisqualifyAdminKey(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !disqualifying) void handleDisqualify(); }} placeholder="Enter BD71 admin key" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-red-400/70" />
+          </label>
+          <div className="mt-5 flex justify-end gap-3">
+            <button type="button" disabled={disqualifying} onClick={() => setDisqualifyTeam(null)} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-white/5 disabled:opacity-50">Cancel</button>
+            <button type="button" disabled={disqualifying || !disqualifyAdminKey.trim()} onClick={() => void handleDisqualify()} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">{disqualifying ? 'Saving…' : 'Confirm disqualification'}</button>
+          </div>
+        </section>
+      </div>}
     </div>
   );
 };

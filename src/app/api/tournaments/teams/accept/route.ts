@@ -36,6 +36,10 @@ export async function POST(req: Request) {
             );
         }
 
+        if (team.isDisqualified === true) {
+            return NextResponse.json({ error: 'This team has been disqualified and cannot be approved.' }, { status: 409 });
+        }
+
         if (team.isApproved) return NextResponse.json({ message: 'Team is already approved.', team: { _id: teamId, teamGameId: team.teamGameId, isApproved: true } });
         const approved = await db.collection('teams').find({ tournamentId, isApproved: true }).toArray();
         const highest = Math.max(2, ...approved.map((t) => Number(t.teamGameId) || 2));
