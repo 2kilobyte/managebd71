@@ -16,6 +16,7 @@ export async function PATCH(request: Request) {
     const teamId = typeof body?.teamId === 'string' ? body.teamId : '';
     const tournamentId = typeof body?.tournamentId === 'string' ? body.tournamentId : '';
     const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    const action = body?.action === 'restore' ? 'restore' : 'disqualify';
 
     if (!ObjectId.isValid(teamId) || !ObjectId.isValid(tournamentId)) {
       return NextResponse.json({ error: 'Invalid team or tournament ID.' }, { status: 400 });
@@ -30,6 +31,17 @@ export async function PATCH(request: Request) {
     if (!team) return NextResponse.json({ error: 'Team not found in this tournament.' }, { status: 404 });
 
     const disqualifiedAt = new Date();
+    if (action === 'restore') {
+      await teams.updateOne(
+        { _id: new ObjectId(teamId), tournamentId },
+        { $set: { isDisqualified: false, updatedAt: disqualifiedAt }, $unset: { disqualificationReason: '', disqualifiedAt: '' } },
+      );
+      return NextResponse.json({
+        message: 'Team qualification restored.',
+        team: { _id: teamId, isDisqualified: false, disqualificationReason: '', disqualifiedAt: null },
+      });
+    }
+
     await teams.updateOne(
       { _id: new ObjectId(teamId), tournamentId },
       { $set: { isDisqualified: true, disqualificationReason: reason, disqualifiedAt, updatedAt: disqualifiedAt } },

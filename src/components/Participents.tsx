@@ -23,6 +23,7 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
   const [adminSecret, setAdminSecret] = useState('');
   const [savingTeamId, setSavingTeamId] = useState<string | null>(null);
   const [disqualifyTeam, setDisqualifyTeam] = useState<Team | null>(null);
+  const [disqualificationAction, setDisqualificationAction] = useState<'disqualify' | 'restore'>('disqualify');
   const [disqualificationReason, setDisqualificationReason] = useState('');
   const [disqualifyAdminKey, setDisqualifyAdminKey] = useState('');
   const [disqualifying, setDisqualifying] = useState(false);
@@ -167,13 +168,13 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
       const response = await fetch('/api/tournaments/teams/disqualify', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-bd71-admin-secret': disqualifyAdminKey.trim() },
-        body: JSON.stringify({ teamId: disqualifyTeam._id, tournamentId: disqualifyTeam.tournamentId, reason: disqualificationReason.trim() }),
+        body: JSON.stringify({ teamId: disqualifyTeam._id, tournamentId: disqualifyTeam.tournamentId, reason: disqualificationReason.trim(), action: disqualificationAction }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not disqualify team.');
 
       setTeamList((current) => current.map((team) => team._id === disqualifyTeam._id ? { ...team, ...data.team } : team));
-      toast.success(`${disqualifyTeam.teamName} disqualified.`);
+      toast.success(disqualificationAction === 'restore' ? `${disqualifyTeam.teamName} qualification restored.` : `${disqualifyTeam.teamName} disqualified.`);
       setDisqualifyTeam(null);
       setDisqualificationReason('');
       setDisqualifyAdminKey('');
@@ -353,28 +354,30 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
                 
               </div>
             )}
-            {!team.isDisqualified && <button
+            <button
               type="button"
-              onClick={() => { setDisqualifyTeam(team); setDisqualificationReason(''); setDisqualifyAdminKey(''); }}
-              className="rounded-3xl border border-red-400/50 px-5 py-2 font-semibold text-red-200 transition-colors hover:bg-red-950/60"
-            >Disqualify</button>}
+              onClick={() => { setDisqualificationAction(team.isDisqualified ? 'restore' : 'disqualify'); setDisqualifyTeam(team); setDisqualificationReason(''); setDisqualifyAdminKey(''); }}
+              className={`rounded-3xl border px-5 py-2 font-semibold transition-colors ${team.isDisqualified ? 'border-emerald-400/50 text-emerald-200 hover:bg-emerald-950/60' : 'border-red-400/50 text-red-200 hover:bg-red-950/60'}`}
+            >{team.isDisqualified ? 'Restore qualification' : 'Disqualify'}</button>
           </div>
           {team.isDisqualified && team.disqualificationReason && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3 text-sm text-red-100"><strong>Disqualification reason:</strong> {team.disqualificationReason}</div>}
         </div>
       ))}
       {disqualifyTeam && <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !disqualifying) setDisqualifyTeam(null); }}>
         <section role="dialog" aria-modal="true" aria-labelledby="disqualify-team-title" className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-[#17191d] p-5 shadow-2xl sm:p-6">
-          <h2 id="disqualify-team-title" className="text-xl font-bold text-white">Disqualify {disqualifyTeam.teamName}?</h2>
-          <p className="mt-2 text-sm text-gray-300">You can add a reason to show on the public tournament card, or leave it blank.</p>
-          <label className="mt-5 grid gap-2 text-sm font-semibold text-gray-200" htmlFor="disqualification-reason">Reason (optional)
-            <textarea id="disqualification-reason" autoFocus maxLength={500} rows={4} value={disqualificationReason} onChange={(event) => setDisqualificationReason(event.target.value)} placeholder="Optional: explain why this team is disqualified" className="resize-y rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-red-400/70" />
-          </label>
+          <h2 id="disqualify-team-title" className="text-xl font-bold text-white">{disqualificationAction === 'restore' ? `Restore ${disqualifyTeam.teamName}?` : `Disqualify ${disqualifyTeam.teamName}?`}</h2>
+          {disqualificationAction === 'restore' ? <p className="mt-2 text-sm text-gray-300">This clears the disqualification status and reason, and returns the team to its previous approved or pending state.</p> : <>
+            <p className="mt-2 text-sm text-gray-300">You can add a reason to show on the public tournament card, or leave it blank.</p>
+            <label className="mt-5 grid gap-2 text-sm font-semibold text-gray-200" htmlFor="disqualification-reason">Reason (optional)
+              <textarea id="disqualification-reason" autoFocus maxLength={500} rows={4} value={disqualificationReason} onChange={(event) => setDisqualificationReason(event.target.value)} placeholder="Optional: explain why this team is disqualified" className="resize-y rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-red-400/70" />
+            </label>
+          </>}
           <label className="mt-4 grid gap-2 text-sm font-semibold text-gray-200" htmlFor="disqualify-admin-key">Admin key
             <input id="disqualify-admin-key" type="password" autoComplete="off" value={disqualifyAdminKey} onChange={(event) => setDisqualifyAdminKey(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !disqualifying) void handleDisqualify(); }} placeholder="Enter BD71 admin key" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-red-400/70" />
           </label>
           <div className="mt-5 flex justify-end gap-3">
             <button type="button" disabled={disqualifying} onClick={() => setDisqualifyTeam(null)} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-white/5 disabled:opacity-50">Cancel</button>
-            <button type="button" disabled={disqualifying || !disqualifyAdminKey.trim()} onClick={() => void handleDisqualify()} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">{disqualifying ? 'Saving…' : 'Confirm disqualification'}</button>
+            <button type="button" disabled={disqualifying || !disqualifyAdminKey.trim()} onClick={() => void handleDisqualify()} className={`rounded-lg px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 ${disqualificationAction === 'restore' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'}`}>{disqualifying ? 'Saving…' : disqualificationAction === 'restore' ? 'Confirm restore' : 'Confirm disqualification'}</button>
           </div>
         </section>
       </div>}
