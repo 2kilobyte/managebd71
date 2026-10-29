@@ -69,9 +69,9 @@ export async function POST(req: Request) {
         //     teamCodes.add(generateTeamCode());
         // }
 
-        // Prepare both credentials before creating the tournament so a missing
+        // Prepare all three scorer credentials before creating the tournament so a missing
         // encryption secret cannot leave an unscorable tournament behind.
-        const scorerKeys = [1, 2].map((position) => ({ position, ...createScorerKey() }));
+        const scorerKeys = [1, 2, 3].map((position) => ({ position, ...createScorerKey() }));
         await db.collection('liveScoreKeys').createIndex({ tournamentId: 1, position: 1 }, { unique: true });
         const result = await db.collection('tournaments').insertOne({
             tournamentName,

@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { ObjectId, type Document } from 'mongodb';
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
-import { decryptScorerKey } from '@/lib/liveScoreKeyCrypto';
+import { createScorerKey, decryptScorerKey } from '@/lib/liveScoreKeyCrypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,8 +32,26 @@ export async function GET(request: Request) {
     const db = (await clientPromise).db('bd71');
     const tournament = await db.collection('tournaments').findOne({ _id: new ObjectId(tournamentId) }, { projection: { tournamentName: 1, totalMatch: 1 } });
     if (!tournament) return fail(404, 'Tournament not found.');
-    const records = await db.collection<ScorerKeyRecord>('liveScoreKeys').find({ tournamentId }, { projection: { position: 1, active: 1, lastFour: 1, createdAt: 1, encryptedKey: 1 } }).toArray();
-    const keys = [1, 2].map((position) => {
+    const keyCollection = db.collection<ScorerKeyRecord>('liveScoreKeys');
+    await keyCollection.createIndex({ tournamentId: 1, position: 1 }, { unique: true });
+    let records = await keyCollection.find({ tournamentId }, { projection: { position: 1, active: 1, lastFour: 1, createdAt: 1, encryptedKey: 1 } }).toArray();
+    // Existing tournaments only had two keys. Add the missing third scorer key
+    // when an administrator opens the key manager; preserve existing credentials.
+    for (const position of [1, 2, 3]) {
+      if (records.some((entry) => Number(entry.position) === position)) continue;
+      const generated = createScorerKey();
+      try {
+        await keyCollection.insertOne({
+          tournamentId, position, keyHash: generated.keyHash,
+          encryptedKey: generated.encryptedKey, lastFour: generated.lastFour,
+          active: true, createdAt: new Date(),
+        });
+      } catch (error) {
+        if (!(error && typeof error === 'object' && 'code' in error && error.code === 11000)) throw error;
+      }
+    }
+    records = await keyCollection.find({ tournamentId }, { projection: { position: 1, active: 1, lastFour: 1, createdAt: 1, encryptedKey: 1 } }).toArray();
+    const keys = [1, 2, 3].map((position) => {
       const key = records.find((entry) => Number(entry.position) === position);
       let value: string | null = null;
       if (key?.active && key.encryptedKey) value = decryptScorerKey(key.encryptedKey);

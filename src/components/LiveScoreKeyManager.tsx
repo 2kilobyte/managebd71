@@ -38,7 +38,7 @@ export default function LiveScoreKeyManager({ tournamentId }: { tournamentId: st
     <main className="mx-auto max-w-3xl px-4 py-10 text-white">
       <p className="mb-2 text-xs font-bold uppercase tracking-[.22em] text-yellow-400">BD71 · Live scoring</p>
       <h1 className="mb-3 text-3xl font-bold">Scorer keys</h1>
-      <p className="mb-7 max-w-2xl text-sm leading-6 text-gray-300">Two keys are created automatically with every new tournament. Use one key for Position 1 and one for Position 2. Each scorer can only update their assigned eight teams.</p>
+      <p className="mb-7 max-w-2xl text-sm leading-6 text-gray-300">Three scorer keys are available per tournament. Position 1 updates six eligible teams; Positions 2 and 3 update five each. Disqualified teams are skipped so the eligible teams fill these assignments.</p>
 
       {!connected && <form onSubmit={connect} className="mb-7 rounded-xl border border-gray-700 bg-[#17191d] p-5">
         <label className="mb-2 block text-sm font-semibold text-gray-200" htmlFor="admin-secret">Admin access key</label>
@@ -51,16 +51,17 @@ export default function LiveScoreKeyManager({ tournamentId }: { tournamentId: st
 
       {connected && <>
         <h2 className="mb-4 text-xl font-bold text-gray-100">{tournamentName}</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[1, 2].map((position) => {
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[1, 2, 3].map((position) => {
             const key = keys.find((item) => item.position === position);
+            const teamRange = position === 1 ? '6 eligible teams' : '5 eligible teams';
             return <section key={position} className="rounded-xl border border-gray-700 bg-[#17191d] p-5">
               <p className="text-xs font-bold uppercase tracking-[.16em] text-yellow-400">Position {position}</p>
-              <p className="my-2 text-sm text-gray-300">Teams {position === 1 ? '01–08' : '09–16'}</p>
+              <p className="my-2 text-sm text-gray-300">Teams {teamRange}</p>
               {key?.active && key.key ? <>
                 <code className="mb-3 block break-all rounded bg-black/40 p-3 text-sm text-white">{key.key}</code>
                 <button type="button" onClick={() => copyKey(key.key!, position)} className="w-full rounded-md bg-yellow-400 px-4 py-2 text-sm font-bold text-black">Copy Position {position} key</button>
-              </> : <p className="rounded-md border border-amber-700/50 bg-amber-950/30 p-3 text-sm text-amber-200">This tournament predates automatic keys. New tournaments receive both keys during creation.</p>}
+              </> : <p className="rounded-md border border-amber-700/50 bg-amber-950/30 p-3 text-sm text-amber-200">This scorer key is not available. Refresh the page to create it.</p>}
               {key?.lastFour && <p className="mt-3 text-xs text-gray-500">Active key ends …{key.lastFour}</p>}
             </section>;
           })}

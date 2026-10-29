@@ -61,7 +61,7 @@ export default function AddTournamentForm() {
       if (response.ok) {
         setCreatedKeys({ tournamentId: data.insertedId, tournamentName: form.tournamentName, keys: data.scorerKeys || [] });
         setCopyMessage('');
-        toast.success('✅ Tournament and both scorer keys created!', { id: toastId });
+        toast.success('✅ Tournament and all three scorer keys created!', { id: toastId });
         setForm({
           tournamentName: '',
           startingDate: '',
@@ -206,7 +206,7 @@ export default function AddTournamentForm() {
         <a href={`/${createdKeys.tournamentId}/live-score`} className="mt-3 inline-block text-sm font-semibold text-yellow-300 underline">Open this tournament’s Scorer Keys page</a>
         <div className="mt-4 grid gap-3">
           {createdKeys.keys.map(({ position, key }) => <div key={position} className="rounded-lg border border-gray-700 bg-black/30 p-3">
-            <div className="mb-2 flex items-center justify-between gap-3"><b className="text-yellow-300">Position {position} · Teams {position === 1 ? '01–08' : '09–16'}</b><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(key); setCopyMessage(`Position ${position} key copied.`); } catch { setCopyMessage('Copy was blocked. Select and copy the key manually.'); } }} className="rounded bg-yellow-400 px-3 py-1 text-sm font-bold text-black">Copy</button></div>
+            <div className="mb-2 flex items-center justify-between gap-3"><b className="text-yellow-300">Position {position} · {position === 1 ? '6 eligible teams' : '5 eligible teams'}</b><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(key); setCopyMessage(`Position ${position} key copied.`); } catch { setCopyMessage('Copy was blocked. Select and copy the key manually.'); } }} className="rounded bg-yellow-400 px-3 py-1 text-sm font-bold text-black">Copy</button></div>
             <code className="block break-all rounded bg-black/50 p-2 text-sm text-white">{key}</code>
           </div>)}
         </div>
