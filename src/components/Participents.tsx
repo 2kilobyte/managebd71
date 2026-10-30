@@ -27,6 +27,10 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
   const [disqualificationReason, setDisqualificationReason] = useState('');
   const [disqualifyAdminKey, setDisqualifyAdminKey] = useState('');
   const [disqualifying, setDisqualifying] = useState(false);
+  const [penaltyTeam, setPenaltyTeam] = useState<Team | null>(null);
+  const [penaltyValue, setPenaltyValue] = useState('0');
+  const [penaltyAdminKey, setPenaltyAdminKey] = useState('');
+  const [savingPenalty, setSavingPenalty] = useState(false);
 
   const startEditing = (team: Team) => {
     setTeamDrafts((current) => ({
@@ -185,6 +189,31 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
     }
   };
 
+  const handleSavePenalty = async () => {
+    if (!penaltyTeam) return;
+    if (!penaltyAdminKey.trim()) return toast.error('Enter the Admin key to update penalty points.');
+    const points = Number(penaltyValue);
+    if (!Number.isSafeInteger(points) || points < 0 || points > 100000) return toast.error('Enter a whole number from 0 to 100,000.');
+    setSavingPenalty(true);
+    try {
+      const response = await fetch('/api/tournaments/teams/penalty', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-bd71-admin-secret': penaltyAdminKey.trim() },
+        body: JSON.stringify({ teamId: penaltyTeam._id, tournamentId: penaltyTeam.tournamentId, penaltyPoints: points }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not update penalty points.');
+      setTeamList((current) => current.map((team) => team._id === penaltyTeam._id ? { ...team, penaltyPoints: points } : team));
+      toast.success(points > 0 ? `${points} penalty points applied to ${penaltyTeam.teamName}.` : `Penalty cleared for ${penaltyTeam.teamName}.`);
+      setPenaltyTeam(null);
+      setPenaltyAdminKey('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not update penalty points.');
+    } finally {
+      setSavingPenalty(false);
+    }
+  };
+
   return (
     <div className="team-grid">
       {teamList.map((team) => (
@@ -246,6 +275,7 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
               <MdLocalPhone className="mr-2" /> {team.mobileNumber}
             </Link>
           </div>
+          {Number(team.penaltyPoints) > 0 && <div className="mt-3 inline-flex rounded-full border border-red-400/40 bg-red-950/50 px-3 py-1 text-xs font-bold text-red-200">−{Number(team.penaltyPoints)} penalty points</div>}
           {editingTeamId === team._id ? (() => {
             const draft = teamDrafts[team._id] ?? team;
             const inputClass = 'w-full min-w-0 rounded-md border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-amber-400';
@@ -359,6 +389,11 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
               onClick={() => { setDisqualificationAction(team.isDisqualified ? 'restore' : 'disqualify'); setDisqualifyTeam(team); setDisqualificationReason(''); setDisqualifyAdminKey(''); }}
               className={`rounded-3xl border px-5 py-2 font-semibold transition-colors ${team.isDisqualified ? 'border-emerald-400/50 text-emerald-200 hover:bg-emerald-950/60' : 'border-red-400/50 text-red-200 hover:bg-red-950/60'}`}
             >{team.isDisqualified ? 'Restore qualification' : 'Disqualify'}</button>
+            <button
+              type="button"
+              onClick={() => { setPenaltyTeam(team); setPenaltyValue(String(Number(team.penaltyPoints) || 0)); setPenaltyAdminKey(''); }}
+              className="rounded-3xl border border-amber-400/50 px-5 py-2 font-semibold text-amber-200 transition-colors hover:bg-amber-950/60"
+            >{Number(team.penaltyPoints) > 0 ? 'Edit penalty' : 'Penalty points'}</button>
           </div>
           {team.isDisqualified && team.disqualificationReason && <div className="mt-3 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3 text-sm text-red-100"><strong>Disqualification reason:</strong> {team.disqualificationReason}</div>}
         </div>
@@ -378,6 +413,22 @@ const Participents: React.FC<ParticipentsProps> = ({ teams }) => {
           <div className="mt-5 flex justify-end gap-3">
             <button type="button" disabled={disqualifying} onClick={() => setDisqualifyTeam(null)} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-white/5 disabled:opacity-50">Cancel</button>
             <button type="button" disabled={disqualifying || !disqualifyAdminKey.trim()} onClick={() => void handleDisqualify()} className={`rounded-lg px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 ${disqualificationAction === 'restore' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'}`}>{disqualifying ? 'Saving…' : disqualificationAction === 'restore' ? 'Confirm restore' : 'Confirm disqualification'}</button>
+          </div>
+        </section>
+      </div>}
+      {penaltyTeam && <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingPenalty) setPenaltyTeam(null); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="team-penalty-title" className="w-full max-w-lg rounded-2xl border border-amber-500/30 bg-[#17191d] p-5 shadow-2xl sm:p-6">
+          <h2 id="team-penalty-title" className="text-xl font-bold text-white">Penalty points · {penaltyTeam.teamName}</h2>
+          <p className="mt-2 text-sm text-gray-300">Set the team’s total penalty deduction. The website leaderboard and scorer overall-points list subtract this from total points; kills and placement points stay unchanged. Enter 0 to clear the penalty.</p>
+          <label className="mt-5 grid gap-2 text-sm font-semibold text-gray-200" htmlFor="team-penalty-points">Points to deduct
+            <input id="team-penalty-points" type="number" min="0" max="100000" step="1" autoFocus value={penaltyValue} onChange={(event) => setPenaltyValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !savingPenalty) void handleSavePenalty(); }} className="rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-amber-400/70" />
+          </label>
+          <label className="mt-4 grid gap-2 text-sm font-semibold text-gray-200" htmlFor="penalty-admin-key">Admin key
+            <input id="penalty-admin-key" type="password" autoComplete="off" value={penaltyAdminKey} onChange={(event) => setPenaltyAdminKey(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !savingPenalty) void handleSavePenalty(); }} placeholder="Enter BD71 admin key" className="rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-amber-400/70" />
+          </label>
+          <div className="mt-5 flex justify-end gap-3">
+            <button type="button" disabled={savingPenalty} onClick={() => setPenaltyTeam(null)} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-white/5 disabled:opacity-50">Cancel</button>
+            <button type="button" disabled={savingPenalty || !penaltyAdminKey.trim()} onClick={() => void handleSavePenalty()} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-black hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">{savingPenalty ? 'Saving…' : 'Save penalty'}</button>
           </div>
         </section>
       </div>}

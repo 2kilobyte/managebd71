@@ -35,6 +35,7 @@ export interface Team {
   mobileNumber: string;
   transactionId?: string;
   teamGameId: number;
+  penaltyPoints?: number;
   isDisqualified?: boolean;
   disqualificationReason?: string;
   disqualifiedAt?: string;
